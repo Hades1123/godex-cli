@@ -11,7 +11,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	devruntime "github.com/hades/cli/internal/runtime"
+	devruntime "github.com/hades/godex/internal/runtime"
 )
 
 type runtimeKind int
@@ -34,6 +34,7 @@ type model struct {
 	ports       []devruntime.PortInfo
 	portFilter  textinput.Model
 	filtering   bool
+	pendingKill *devruntime.PortInfo // non-nil when awaiting kill confirmation
 	currentJava string
 	currentNode string
 	command     string
@@ -133,7 +134,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 
 	case tea.KeyMsg:
-		// When filtering, delegate most keys to the textinput.
+		// Awaiting kill confirmation — y confirms, anything else cancels.
+		if m.pendingKill != nil {
+			switch msg.String() {
+			case "y", "Y":
+				pid, err := devruntime.KillPort(m.pendingKill.Port, m.pendingKill.Protocol, false)
+				if err != nil {
+					m.status = fmt.Sprintf("Kill failed: %v", err)
+				} else {
+					m.status = fmt.Sprintf("Killed PID %d on port %d.", pid, m.pendingKill.Port)
+					// Refresh port list.
+					ports, _ := devruntime.ListPorts()
+					m.ports = ports
+				}
+			default:
+				m.status = fmt.Sprintf("Kill cancelled for port %d.", m.pendingKill.Port)
+			}
+			m.pendingKill = nil
+			return m, nil
+		}
+
+		// When filtering, delegate most keys to the textinput,
+		// but keep j/k/up/down for navigating the filtered list.
 		if m.filtering {
 			switch msg.String() {
 			case "esc":
@@ -144,11 +166,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			case "enter":
 				m.filtering = false
-				m.cursor = 0
+				m.command = m.portDetail()
 				m.status = ""
 				return m, nil
 			case "ctrl+c", "q":
 				return m, tea.Quit
+			case "up", "k":
+				if m.cursor > 0 {
+					m.cursor--
+				}
+				return m, nil
+			case "down", "j":
+				if m.cursor < m.listLength()-1 {
+					m.cursor++
+				}
+				return m, nil
 			default:
 				var cmd tea.Cmd
 				m.portFilter, cmd = m.portFilter.Update(msg)
@@ -199,6 +231,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.status = "Activation command copied."
 				}
 			}
+		case "d":
+			if m.active == portsRuntime && !m.filtering {
+				port := m.selectedPort()
+				if port != nil {
+					m.pendingKill = port
+					m.status = fmt.Sprintf("Kill process on port %d? Press y to confirm, any other key to cancel.", port.Port)
+				}
+			}
 		case "/":
 			if m.active == portsRuntime {
 				m.filtering = true
@@ -236,9 +276,9 @@ func (m model) View() string {
 	}
 
 	var b strings.Builder
-	b.WriteString(titleStyle.Render("devvm"))
+	b.WriteString(titleStyle.Render("godex"))
 	b.WriteString(" ")
-	b.WriteString(mutedStyle.Render("Java and Node.js version manager"))
+	b.WriteString(mutedStyle.Render("developer toolbox"))
 	b.WriteString("\n\n")
 	b.WriteString(m.tabs())
 	b.WriteString("\n\n")
@@ -251,7 +291,7 @@ func (m model) View() string {
 		b.WriteString("\n")
 	}
 	if m.active == portsRuntime {
-		b.WriteString(mutedStyle.Render("tab switch  j/k move  / filter  enter detail  c copy  r refresh  q quit"))
+		b.WriteString(mutedStyle.Render("tab switch  j/k move  / filter  enter detail  c copy  d kill  r refresh  q quit"))
 	} else {
 		b.WriteString(mutedStyle.Render("tab switch runtime  j/k move  enter generate  c copy  q quit"))
 	}
@@ -384,7 +424,7 @@ func (m model) portsPanel(b *strings.Builder, width int) string {
 func (m model) commandPanel(width int) string {
 	if m.active == portsRuntime {
 		if m.filtering {
-			return mutedStyle.Render("esc to clear filter  enter to apply")
+			return mutedStyle.Render("j/k navigate  enter select  esc clear filter")
 		}
 		if m.command == "" {
 			return mutedStyle.Render("Select a port and press enter for details, c to copy the port number, r to refresh.")
@@ -418,6 +458,7 @@ func (m *model) switchRuntime() {
 	m.command = ""
 	m.filtering = false
 	m.portFilter.Reset()
+	m.pendingKill = nil
 }
 
 func (m model) installs() []devruntime.Install {

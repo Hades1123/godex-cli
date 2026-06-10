@@ -1,4 +1,4 @@
-module github.com/hades/cli
+module github.com/hades/godex
 
 go 1.26.4
 

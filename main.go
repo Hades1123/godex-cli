@@ -1,6 +1,6 @@
 package main
 
-import "github.com/hades/cli/cmd"
+import "github.com/hades/godex/cmd"
 
 func main() {
 	cmd.Execute()

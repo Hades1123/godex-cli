@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hades/cli/internal/runtime"
+	"github.com/hades/godex/internal/runtime"
 	"github.com/spf13/cobra"
 )
 

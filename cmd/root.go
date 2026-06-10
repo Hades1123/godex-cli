@@ -8,9 +8,9 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "devvm",
-	Short: "Manage local Java and Node.js versions",
-	Long:  "devvm manages local Java and Node.js versions and can print shell exports for switching versions.",
+	Use:   "godex",
+	Short: "Go developer toolbox — Java, Node.js, and port manager",
+	Long:  "godex is a developer toolbox for managing Java/Node.js versions, monitoring ports, and more.",
 }
 
 func Execute() {
