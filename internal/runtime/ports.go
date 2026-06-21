@@ -130,10 +130,17 @@ func KillPort(port int, protocol string, force bool) (int, error) {
 		return 0, fmt.Errorf("no process found on port %d/%s", port, proto)
 	}
 
-	pidStr := strings.TrimSpace(string(out))
+	// fuser output: "8080/tcp:            48518\n"
+	// Extract PID from after the colon.
+	raw := strings.TrimSpace(string(out))
+	parts := strings.SplitN(raw, ":", 2)
+	pidStr := raw
+	if len(parts) == 2 {
+		pidStr = strings.TrimSpace(parts[1])
+	}
 	pid, err := strconv.Atoi(pidStr)
 	if err != nil {
-		return 0, fmt.Errorf("could not parse PID from fuser output: %s", pidStr)
+		return 0, fmt.Errorf("could not parse PID from fuser output: %s", raw)
 	}
 
 	sig := syscall.SIGTERM

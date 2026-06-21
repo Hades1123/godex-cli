@@ -23,5 +23,4 @@ func Execute() {
 func init() {
 	rootCmd.AddCommand(javaCmd)
 	rootCmd.AddCommand(nodeCmd)
-	rootCmd.AddCommand(guiCmd)
 }
