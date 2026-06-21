@@ -101,11 +101,14 @@ func init() {
 // --- helpers ---
 
 func presetDir() (string, error) {
-	home, err := os.UserHomeDir()
+	// os.UserConfigDir is cross-platform:
+	//   Linux/macOS: ~/.config        (or $XDG_CONFIG_HOME)
+	//   Windows:     %AppData%        (e.g. C:\Users\<user>\AppData\Roaming)
+	base, err := os.UserConfigDir()
 	if err != nil {
-		return "", fmt.Errorf("cannot find home dir: %w", err)
+		return "", fmt.Errorf("cannot find config dir: %w", err)
 	}
-	dir := filepath.Join(home, ".config", "godex", "presets")
+	dir := filepath.Join(base, "godex", "presets")
 	// Ensure the directory exists.
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", fmt.Errorf("cannot create preset dir: %w", err)
