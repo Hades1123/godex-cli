@@ -46,58 +46,43 @@ go mod tidy        # tải tất cả dependencies về cache
 
 ```bash
 # ── CODING ──
-vim internal/ui/tui.go      # sửa TUI
 vim cmd/ports.go             # thêm command mới
 vim internal/runtime/xxx.go  # thêm business logic
 
-# ── BUILD (dev) ──
-go build -o godex .          # build ra binary ./godex
-./godex ports                # test thử
+# ── BUILD (một lệnh duy nhất) ──
+./build.sh                   # build + vet + cài vào PATH
 
-# ── VET ──
-go vet ./...                 # kiểm tra lỗi code
-
-# ── INSTALL (global) ──
-go build -o $HOME/.local/bin/godex .   # build thẳng vào PATH
-hash -r                                # zsh refresh command cache
-godex ports                            # test từ bất kỳ đâu
+# ── TEST ──
+godex ports                  # test từ bất kỳ đâu
+godex config list
 ```
 
 ## 5. Workflow tóm tắt
 
 ```
-┌──────────┐     ┌──────────┐     ┌───────────┐     ┌──────────┐
-│  viết    │────►│ go build │────►│ go vet    │────►│ install  │
-│  code    │     │ -o godex │     │ ./...     │     │ to PATH  │
-└──────────┘     └──────────┘     └───────────┘     └──────────┘
-                                       │                  │
-                                       ▼                  ▼
-                                  lỗi → sửa          godex ports
-                                                      godex tui
+┌──────────┐     ┌──────────────────────┐
+│  viết    │────►│  ./build.sh          │
+│  code    │     │  (build + vet + cài) │
+└──────────┘     └──────┬───────────────┘
+                        │
+                   ┌────▼────┐
+                   │ godex   │  ← dùng ngay
+                   │ <lệnh>  │
+                   └─────────┘
 ```
 
 ## 6. Cấu trúc thư mục liên quan
 
 ```
 ~/Code/Core/Golang/CLI/    ← source code (project)
+    ├── build.sh           ← build script (chạy sau mỗi lần sửa code)
     ├── main.go
     ├── cmd/                ← cobra commands
     ├── internal/
-    │   ├── runtime/        ← business logic
-    │   └── ui/             ← TUI (Bubble Tea)
+    │   └── runtime/        ← business logic
     └── docs/               ← tài liệu
 
 ~/.local/bin/godex          ← binary toàn cục (trong PATH)
-```
-
-## 7. Lệnh hay dùng
-
-```bash
-# Build + vet + install một dòng
-go build -o $HOME/.local/bin/godex . && go vet ./... && hash -r
-
-# Hoặc dùng alias trong ~/.zshrc
-alias devbuild='cd ~/Code/Core/Golang/CLI && go build -o $HOME/.local/bin/godex . && go vet ./... && hash -r && echo "✓ godex installed"'
 ```
 
 ## 8. Troubleshooting
