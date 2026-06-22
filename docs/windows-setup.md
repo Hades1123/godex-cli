@@ -89,7 +89,7 @@ mkdir $env:USERPROFILE\bin
 copy godex.exe $env:USERPROFILE\bin\
 
 # Thêm vào PATH (cập nhật biến User vĩnh viễn)
-[Environment]::SetEnvironmentVariable("Path", $env:USERPROFILE\bin + ";" + $env:Path, "User")
+[Environment]::SetEnvironmentVariable("Path", "$env:USERPROFILE\bin;$env:Path", "User")
 ```
 
 Đóng + mở terminal lại, test:
@@ -98,7 +98,7 @@ copy godex.exe $env:USERPROFILE\bin\
 godex config current
 ```
 
-> Mỗi lần sửa code: `go build -o $env:USERPROFILE\bin\godex.exe .` — build thẳng vào PATH luôn.
+> Mỗi lần sửa code: `go build -o "$env:USERPROFILE\bin\godex.exe" .` — build thẳng vào PATH luôn.
 
 ---
 
