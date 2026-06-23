@@ -1,11 +1,7 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -51,19 +47,15 @@ var configCurrentCmd = &cobra.Command{
 	Aliases: []string{"cur"},
 	Short: "Show the active Claude Code settings",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		home, err := os.UserHomeDir()
+	
+		settingsPath, err := claudeSettingsPath()
 		if err != nil {
-			return fmt.Errorf("cannot find home dir: %w", err)
-		}
-		settingsPath := filepath.Join(home, ".claude", "settings.json")
-		data, err := os.ReadFile(settingsPath)
-		if err != nil {
-			return fmt.Errorf("cannot read %s: %w", settingsPath, err)
+			return err
 		}
 
-		var cfg map[string]any
-		if err := json.Unmarshal(data, &cfg); err != nil {
-			return fmt.Errorf("invalid JSON in %s: %w", settingsPath, err)
+		cfg, err := readClaudeSettings(settingsPath)
+		if err != nil {
+			return err
 		}
 
 		model, _ := cfg["model"].(string)
@@ -82,97 +74,39 @@ var configCurrentCmd = &cobra.Command{
 	},
 }
 
+var claudeChangeApiCmd = &cobra.Command{
+	Use: "api <key>",
+	Short: "Change current api key (.claude/settings.json)",
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+
+		settingsPath, err := claudeSettingsPath()
+		if err != nil{
+			return err
+		}
+
+		cfg, err := readClaudeSettings(settingsPath)
+		if err != nil {
+			return err
+		}
+
+		if env, ok := cfg["env"].(map[string]any); ok {
+			env["ANTHROPIC_AUTH_TOKEN"] = args[0]
+		}
+
+		err = writeClaudeSettings(cfg, settingsPath, 0644)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	},
+}
+
 func init() {
 	configCmd.AddCommand(configListCmd)
 	configCmd.AddCommand(configUseCmd)
 	configCmd.AddCommand(configCurrentCmd)
+	configCmd.AddCommand(claudeChangeApiCmd)
 	rootCmd.AddCommand(configCmd)
-}
-
-// --- helpers ---
-
-func presetDir() (string, error) {
-	// os.UserConfigDir is cross-platform:
-	//   Linux/macOS: ~/.config        (or $XDG_CONFIG_HOME)
-	//   Windows:     %AppData%        (e.g. C:\Users\<user>\AppData\Roaming)
-	base, err := os.UserConfigDir()
-	if err != nil {
-		return "", fmt.Errorf("cannot find config dir: %w", err)
-	}
-	dir := filepath.Join(base, "godex", "presets")
-	// Ensure the directory exists.
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return "", fmt.Errorf("cannot create preset dir: %w", err)
-	}
-	return dir, nil
-}
-
-func listPresets() ([]string, error) {
-	dir, err := presetDir()
-	if err != nil {
-		return nil, err
-	}
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return nil, fmt.Errorf("cannot read preset dir: %w", err)
-	}
-	var names []string
-	for _, e := range entries {
-		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
-			continue
-		}
-		names = append(names, strings.TrimSuffix(e.Name(), ".json"))
-	}
-	return names, nil
-}
-
-func presetPath(name string) (string, error) {
-	dir, err := presetDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(dir, name+".json"), nil
-}
-
-func switchPreset(name string) error {
-	src, err := presetPath(name)
-	if err != nil {
-		return err
-	}
-
-	// Check the preset file exists.
-	if _, err := os.Stat(src); os.IsNotExist(err) {
-		return fmt.Errorf("preset %q not found at %s", name, src)
-	}
-
-	data, err := os.ReadFile(src)
-	if err != nil {
-		return fmt.Errorf("cannot read preset: %w", err)
-	}
-
-	// Validate JSON.
-	var js map[string]any
-	if err := json.Unmarshal(data, &js); err != nil {
-		return fmt.Errorf("preset %q contains invalid JSON: %w", name, err)
-	}
-
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("cannot find home dir: %w", err)
-	}
-
-	// Ensure ~/.claude directory exists.
-	claudeDir := filepath.Join(home, ".claude")
-	if err := os.MkdirAll(claudeDir, 0755); err != nil {
-		return fmt.Errorf("cannot create ~/.claude: %w", err)
-	}
-
-	target := filepath.Join(claudeDir, "settings.json")
-
-	if err := os.WriteFile(target, data, 0644); err != nil {
-		return fmt.Errorf("cannot write %s: %w", target, err)
-	}
-
-	fmt.Printf("Switched to preset %q → %s\n", name, target)
-	return nil
 }
