@@ -105,7 +105,46 @@ var claudeChangeApiCmd = &cobra.Command{
 	},
 }
 
+// ---- template ----
+
+var configTemplateCmd = &cobra.Command{
+	Use:     "template",
+	Aliases: []string{"tpl"},
+	Short:   "Manage preset templates (download from GitHub)",
+}
+
+var configTemplateListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List available templates",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		for _, t := range listTemplates() {
+			fmt.Fprintf(cmd.OutOrStdout(), "  %s\n", t)
+		}
+		return nil
+	},
+}
+
+var configTemplateInstallCmd = &cobra.Command{
+	Use:   "install <name>",
+	Short: "Download a template from GitHub and add to presets",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		name := args[0]
+		if err := installTemplate(name); err != nil {
+			return err
+		}
+		fmt.Fprintf(cmd.OutOrStdout(), "Template %q installed to presets.\n", name)
+		fmt.Fprintf(cmd.OutOrStdout(), "  → edit API key: godex claude api <key>\n")
+		fmt.Fprintf(cmd.OutOrStdout(), "  → activate:      godex claude use %s\n", name)
+		return nil
+	},
+}
+
 func init() {
+	configTemplateCmd.AddCommand(configTemplateListCmd)
+	configTemplateCmd.AddCommand(configTemplateInstallCmd)
+	configCmd.AddCommand(configTemplateCmd)
+
 	configCmd.AddCommand(configListCmd)
 	configCmd.AddCommand(configUseCmd)
 	configCmd.AddCommand(configCurrentCmd)

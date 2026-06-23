@@ -3,7 +3,9 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -126,6 +128,75 @@ func listPresets() ([]string, error) {
 		}
 		names = append(names, strings.TrimSuffix(e.Name(), ".json"))
 	}
-	
+
 	return names, nil
+}
+
+// ---- template helpers ----
+
+const templateBaseURL = "https://raw.githubusercontent.com/Hades1123/godex-cli/main/templates"
+
+// templates is the curated list of presets available for download.
+var templates = []string{"glm", "deepseek"}
+
+func listTemplates() []string {
+	return templates
+}
+
+func templateURL(name string) string {
+	return templateBaseURL + "/" + name + ".json"
+}
+
+// installTemplate downloads a template JSON from GitHub and saves it to the
+// local preset directory (~/.config/godex/presets/<name>.json).
+func installTemplate(name string) error {
+	// Validate template name against the known list.
+	found := false
+	for _, t := range templates {
+		if t == name {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return fmt.Errorf("unknown template %q — run: godex claude template list", name)
+	}
+
+	url := templateURL(name)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return fmt.Errorf("cannot download template: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("template %q not found at %s (HTTP %d)", name, url, resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("cannot read response: %w", err)
+	}
+
+	// Validate JSON.
+	var cfg map[string]any
+	if err := json.Unmarshal(body, &cfg); err != nil {
+		return fmt.Errorf("template %q is not valid JSON: %w", name, err)
+	}
+
+	dst, err := presetPath(name)
+	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+		return fmt.Errorf("cannot create preset dir: %w", err)
+	}
+
+	if err := os.WriteFile(dst, body, 0644); err != nil {
+		return fmt.Errorf("cannot write template to %s: %w", dst, err)
+	}
+
+	return nil
 }
