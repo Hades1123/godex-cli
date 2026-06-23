@@ -74,6 +74,8 @@ var configCurrentCmd = &cobra.Command{
 	},
 }
 
+//! Only change current settings.json
+//! We must change the preset
 var claudeChangeApiCmd = &cobra.Command{
 	Use: "api <key>",
 	Short: "Change current api key (.claude/settings.json)",

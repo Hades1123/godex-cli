@@ -62,11 +62,13 @@ func presetDir() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("cannot find config dir: %w", err)
 	}
+	
 	dir := filepath.Join(base, "godex", "presets")
 	// Ensure the directory exists.
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", fmt.Errorf("cannot create preset dir: %w", err)
 	}
+	
 	return dir, nil
 }
 
@@ -75,7 +77,7 @@ func presetPath(name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, name+".json"), nil
+	return filepath.Join(dir, name + ".json"), nil
 }
 
 func switchPreset(name string) error {
@@ -116,7 +118,7 @@ func listPresets() ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot read preset dir: %w", err)
 	}
-	
+
 	var names []string
 	for _, e := range entries {
 		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
