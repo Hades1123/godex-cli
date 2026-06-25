@@ -74,8 +74,6 @@ var configCurrentCmd = &cobra.Command{
 	},
 }
 
-//! Only change current settings.json
-//! We must change the preset
 var claudeChangeApiCmd = &cobra.Command{
 	Use: "api <key>",
 	Short: "Change current api key (.claude/settings.json)",
@@ -125,15 +123,10 @@ var claudeChangeApiCmd = &cobra.Command{
 
 // ---- template ----
 
-var configTemplateCmd = &cobra.Command{
-	Use:     "template",
-	Aliases: []string{"tpl"},
-	Short:   "Manage preset templates (download from GitHub)",
-}
-
 var configTemplateListCmd = &cobra.Command{
-	Use:   "list",
+	Use:   "template",
 	Short: "List available templates",
+	Aliases: []string{"tpl"},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		for _, t := range listTemplates() {
 			fmt.Fprintf(cmd.OutOrStdout(), "  %s\n", t)
@@ -144,6 +137,7 @@ var configTemplateListCmd = &cobra.Command{
 
 var configTemplateInstallCmd = &cobra.Command{
 	Use:   "install <name>",
+	Aliases: []string{"i"},
 	Short: "Download a template from GitHub and add to presets",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -159,13 +153,11 @@ var configTemplateInstallCmd = &cobra.Command{
 }
 
 func init() {
-	configTemplateCmd.AddCommand(configTemplateListCmd)
-	configTemplateCmd.AddCommand(configTemplateInstallCmd)
-	configCmd.AddCommand(configTemplateCmd)
-
 	configCmd.AddCommand(configListCmd)
 	configCmd.AddCommand(configUseCmd)
 	configCmd.AddCommand(configCurrentCmd)
 	configCmd.AddCommand(claudeChangeApiCmd)
+	configCmd.AddCommand(configTemplateListCmd)
+	configCmd.AddCommand(configTemplateInstallCmd)
 	rootCmd.AddCommand(configCmd)
 }
