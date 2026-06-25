@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -97,6 +98,8 @@ func switchPreset(name string) error {
 		return err
 	}
 
+	cfg["godex"] = name
+
 	target, err := claudeSettingsPath()
 	if err != nil {
 		return err
@@ -150,15 +153,7 @@ func templateURL(name string) string {
 // installTemplate downloads a template JSON from GitHub and saves it to the
 // local preset directory (~/.config/godex/presets/<name>.json).
 func installTemplate(name string) error {
-	// Validate template name against the known list.
-	found := false
-	for _, t := range templates {
-		if t == name {
-			found = true
-			break
-		}
-	}
-	if !found {
+	if !slices.Contains(templates, name) {
 		return fmt.Errorf("unknown template %q — run: godex claude template list", name)
 	}
 

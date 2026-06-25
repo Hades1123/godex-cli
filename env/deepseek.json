@@ -23,5 +23,6 @@
     }
   },
   "effortLevel": "medium",
-  "showTurnDuration": false
+  "showTurnDuration": false,
+  "godex": "deepseek"
 }

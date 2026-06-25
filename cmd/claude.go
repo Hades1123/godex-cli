@@ -92,15 +92,33 @@ var claudeChangeApiCmd = &cobra.Command{
 			return err
 		}
 
-		if env, ok := cfg["env"].(map[string]any); ok {
-			env["ANTHROPIC_AUTH_TOKEN"] = args[0]
-		}
-
-		err = writeClaudeSettings(cfg, settingsPath, 0644)
+		currentPreset := cfg["godex"].(string)
+		presetPath, err := presetPath(currentPreset)
 		if err != nil {
 			return err
 		}
 
+		presetConfig, err := readClaudeSettings(presetPath)
+		if err != nil {
+			return err
+		}
+
+		if presetEnv, ok := presetConfig["env"].(map[string]any); ok {
+			presetEnv["ANTHROPIC_AUTH_TOKEN"] = args[0]
+		}
+
+		if env, ok := cfg["env"].(map[string]any); ok {
+			env["ANTHROPIC_AUTH_TOKEN"] = args[0]
+		}
+
+		if err := writeClaudeSettings(cfg, settingsPath, 0644); err != nil{
+			return nil
+		}
+
+		if err := writeClaudeSettings(presetConfig, presetPath, 0644) ; err != nil {
+			return nil	
+		}
+		
 		return nil
 	},
 }
