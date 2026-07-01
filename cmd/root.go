@@ -9,8 +9,8 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "godex",
-	Short: "Go developer toolbox — Java, Node.js, and port manager",
-	Long:  "godex is a developer toolbox for managing Java/Node.js versions, monitoring ports, and more.",
+	Short: "Go developer toolbox — Claude Code presets and network port manager",
+	Long:  "godex is a developer toolbox for managing Claude Code presets and monitoring network ports.",
 }
 
 func Execute() {
@@ -18,9 +18,4 @@ func Execute() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-}
-
-func init() {
-	rootCmd.AddCommand(javaCmd)
-	rootCmd.AddCommand(nodeCmd)
 }

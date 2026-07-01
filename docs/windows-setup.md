@@ -135,8 +135,7 @@ Claude Code trên Windows lưu settings ở `C:\Users\<bạn>\.claude\settings.j
 
 | Tính năng | Windows | Ghi chú |
 |-----------|---------|---------|
-| `config` | ✅ Đầy đủ | File I/O + JSON, chạy tốt |
-| `java`/`node` | ⚠️ Hạn chế | Scan path Linux (`/usr/lib/jvm`, `~/.nvm`); cần thêm path Windows (`C:\Program Files\Java`) sau |
+| `claude` | ✅ Đầy đủ | File I/O + JSON, chạy tốt |
 | `ports list` | ⚠️ Lỗi runtime | Lệnh `ss` không có trên Windows |
 | `ports kill` | ⚠️ Báo "not supported" | Cần implement bằng `netstat` + `taskkill` sau |
 

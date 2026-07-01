@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# ─── godex build script ─────────────────────────────────────
+# Delegates to Makefile for consistency.
+# Usage: ./build.sh [linux|windows]
+#   linux   — build + install to ~/.local/bin/ (default)
+#   windows — cross-compile to godex.exe
 set -e
 
 cd "$(dirname "$0")"
@@ -6,27 +11,26 @@ cd "$(dirname "$0")"
 case "${1:-linux}" in
     linux|lin)
         echo "✨ Building godex (Linux)…"
-        go build -o "$HOME/.local/bin/godex" .
-
-        echo "✨ Running vet…"
-        go vet ./...
-
-        hash -r
+        make build
+        make install
+        make vet
+        hash -r 2>/dev/null || true
         echo "✅ godex installed to ~/.local/bin/godex"
+        echo ""
+        echo "   Run: godex --help"
         ;;
     windows|win)
         echo "✨ Building godex.exe (Windows)…"
-        GOOS=windows GOARCH=amd64 go build -o godex.exe .
-
+        make build/windows
         echo "✅ godex.exe created ($(du -h godex.exe | cut -f1))"
         echo ""
-        echo "🪟  Copy godex.exe sang Windows và chạy:"
-        echo "   C:\Users\&lt;bạn&gt;\bin\godex.exe config list"
+        echo "🪟  Copy godex.exe to your Windows machine:"
+        echo "   C:\Users\<you>\bin\godex.exe --help"
         ;;
     *)
         echo "Usage: $0 [linux|windows]"
-        echo "  linux   — build + cài vào PATH (mặc định)"
-        echo "  windows — cross-compile ra godex.exe"
+        echo "  linux   — build + install (default)"
+        echo "  windows — cross-compile to godex.exe"
         exit 1
         ;;
 esac

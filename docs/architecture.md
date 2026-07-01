@@ -1,57 +1,34 @@
 # godex — Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                                 godex CLI                                    │
-│                          Java & Node.js version manager                      │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                      │
-                    ┌─────────────────┼─────────────────┐
-                    ▼                 ▼                 ▼
-              ┌──────────┐    ┌────────────┐    ┌────────────┐
-              │  godex   │    │ godex node │    │ godex tui  │
-              │   java   │    │            │    │   (gui)    │
-              └────┬─────┘    └─────┬──────┘    └─────┬──────┘
-                   │                │                 │
-      ┌────────────┼───────┐       │                 │
-      ▼            ▼       ▼       ▼                 ▼
-  ┌───────┐ ┌─────────┐ ┌────┐ ┌───────┐    ┌──────────────┐
-  │ list  │ │ current │ │use │ │ list  │    │  Bubble Tea  │
-  │       │ │         │ │    │ │current│    │    TUI       │
-  └───┬───┘ └────┬────┘ └──┬─┘ │ use   │    │              │
-      │          │         │   └───┬───┘    │ ┌──────────┐ │
-      │          │         │       │        │ │ Java tab │ │
-      │          │         │       │        │ │ Node tab │ │
-      │          │         │       │        │ │ Ports tab│ │
-      └──────────┼─────────┴───────┘        │ └────┬─────┘ │
-                 │                           │      │       │
-                 ▼                           │  ┌───┴────┐  │
-    ┌────────────────────────┐              │  │Filter  │  │
-    │   internal/runtime/    │◄─────────────┤  │Search  │  │
-    │                        │              │  │Kill    │  │
-    │  install.go            │              │  └────────┘  │
-    │    Install struct      │              └──────┬───────┘
-    │    listDirs()          │                     │
-    │    findInstall()       │                     ▼
-    │                        │         ┌──────────────────┐
-    │  java.go               │         │ internal/ui/     │
-    │    ListJava()           │         │   tui.go         │
-    │    FindJava()           │         │                  │
-    │    CurrentJava()        │         │ model struct     │
-    │                        │         │ Update()  View() │
-    │  node.go               │         │ tabs()  panels() │
-    │    ListNode()           │         └──────────────────┘
-    │    FindNode()           │
-    │    CurrentNode()        │
-    │                        │
-    │  ports.go              │
-    │    PortInfo struct      │
-    │    ListPorts()          │
-    │    KillPort()           │
-    │      ├── ss -tulnp ────┤
-    │      ├── fuser ────────┤
-    │      └── syscall.Kill ─┤
-    └────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                        godex CLI                         │
+│        Claude Code presets & network port manager        │
+└──────────────────────────────────────────────────────────┘
+                              │
+                ┌─────────────┴─────────────┐
+                ▼                           ▼
+          ┌──────────┐                ┌──────────┐
+          │  godex   │                │  godex   │
+          │  claude  │                │  ports   │
+          └────┬─────┘                └────┬─────┘
+               │                           │
+      ┌────────┼────────┐         ┌────────┼─────────┐
+      ▼        ▼        ▼         ▼        ▼          ▼
+   ┌─────┐ ┌───────┐ ┌──────┐ ┌──────┐ ┌───────┐ ┌──────┐
+   │list │ │current│ │ use  │ │ list │ │search │ │ kill │
+   │current│ │ api  │ │ api  │ │      │ │       │ │      │
+   │ api │ │template│ │      │ │      │ │       │ │      │
+   └──┬──┘ └───┬───┘ └──┬───┘ └───┬──┘ └───┬───┘ └──┬───┘
+      │        │        │         │        │        │
+      ▼        ▼        ▼         ▼        ▼        ▼
+   ┌──────────────────────┐   ┌─────────────────────────────┐
+   │ internal/runtime/    │   │ internal/runtime/           │
+   │  (claude preset I/O) │   │  ports.go  — ss -tulnp      │
+   │                      │   │  ports_unix.go — fuser +    │
+   │  settings.json read/ │   │     syscall.Kill            │
+   │  write + presets     │   │  ports_windows.go — stub    │
+   └──────────────────────┘   └─────────────────────────────┘
 ```
 
 ## Layer Pattern
@@ -61,50 +38,16 @@
      ▲
      │  calls
      │
- internal/
-     │
-     ├── ui/      ──  TUI layer (Bubble Tea, lipgloss styles)
-     │
-     └── runtime/ ──  Business logic (no UI deps)
-                      Pure Go, calls external tools:
-                      java, node, ss, fuser, kill
+ internal/runtime/  ──  Business logic (no CLI deps)
+                      Pure Go; calls external tools:
+                      ss, fuser, kill
 ```
 
-## TUI State Flow
+The `claude` command manages the Claude Code `settings.json` preset directly (read/write
+`~/.claude/settings.json` and the preset store), plus downloads preset templates from GitHub.
 
-```
- ┌────────┐  tab   ┌────────┐  tab   ┌────────┐
- │  Java  │◄──────►│  Node  │◄──────►│ Ports  │
- │  tab   │        │  tab   │        │  tab   │
- └────────┘        └────────┘        └────────┘
-                                            │
-                                   ┌────────┴────────┐
-                                   ▼                  ▼
-                             / filter          d kill
-                             │                  │
-                             ▼                  ▼
-                        ┌─────────┐    ┌──────────────┐
-                        │ typing  │    │ pendingKill  │
-                        │ j/k nav │    │ y=confirm    │
-                        │ enter   │    │ any=cancel   │
-                        │ esc     │    └──────────────┘
-                        └─────────┘
-```
-
-## Keybindings
-
-| Context     | Key          | Action                            |
-|------------ |------------- |---------------------------------- |
-| Global      | tab / ←→     | switch tab                        |
-| Global      | j/k / ↑↓     | navigate list                     |
-| Global      | q / esc      | quit                              |
-| Java/Node   | enter        | generate activation command       |
-| Java/Node   | c            | copy command to clipboard         |
-| Ports       | /            | enter filter mode                 |
-| Ports       | enter        | show port detail                  |
-| Ports       | c            | copy port number                  |
-| Ports       | d → y        | kill process on port (confirm)    |
-| Ports       | r            | refresh port list                 |
+The `ports` command shells out to `ss(8)` to list listeners, and to `fuser` + `syscall.Kill`
+(on Unix) to terminate a process bound to a port.
 
 ## File Map
 
@@ -113,17 +56,15 @@
 ├── main.go                     # entry point
 ├── cmd/
 │   ├── root.go                 # cobra root (godex)
-│   ├── java.go                 # godex java {list,current,use}
-│   ├── node.go                 # godex node {list,current,use}
-│   └── gui.go                  # godex tui (alias: gui)
-├── internal/
-│   ├── runtime/
-│   │   ├── install.go          # shared: Install struct, listDirs, findInstall
-│   │   ├── java.go             # Java detection (sdkman, jenv, /usr/lib/jvm)
-│   │   ├── node.go             # Node detection (nvm, fnm)
-│   │   └── ports.go            # Port detection (ss) + kill (fuser, syscall)
-│   └── ui/
-│       └── tui.go              # Bubble Tea TUI (model, tabs, panels, filter)
+│   ├── claude.go               # godex claude {list,current,use,api,template}
+│   ├── claude_helpers.go       # settings.json I/O + preset management
+│   └── ports.go                # godex ports {list,search,kill}
+├── internal/runtime/
+│   ├── ports.go                # Port listing via ss -tulnp
+│   ├── ports_unix.go           # Kill port (Linux/macOS): fuser + syscall.Kill
+│   └── ports_windows.go        # Kill port stub (Windows)
+├── templates/                  # Preset templates (downloaded via GitHub)
+├── completions/                # Generated shell completions (bash, fish)
 └── docs/
     └── architecture.md         # this file
 ```

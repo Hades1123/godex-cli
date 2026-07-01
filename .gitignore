@@ -1,0 +1,16 @@
+# Binaries
+godex
+godex.exe
+build/
+
+# Build artifacts
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
